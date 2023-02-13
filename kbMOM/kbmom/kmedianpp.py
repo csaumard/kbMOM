@@ -51,20 +51,7 @@ def euclidean_distances(X, Y=None, Y_norm_squared=None, squared=False,X_norm_squ
     --------
     paired_distances : distances betweens pairs of elements of X and Y.
     """
-    
-    if X_norm_squared is not None:
-    #    XX = check_array(X_norm_squared)
-        if XX.shape == (1, X.shape[0]):
-            XX = XX.T
-        elif XX.shape != (X.shape[0], 1):
-            raise ValueError("Incompatible dimensions for X and X_norm_squared")
-            
-        if XX.dtype == np.float32:
-            XX = None
-    elif X.dtype == np.float32:
-        XX = None
-    else:
-        XX = row_norms(X, squared=True)[:, np.newaxis]
+    XX = row_norms(X, squared=True)[:, np.newaxis]
 
     if X is Y and XX is not None:
         # shortcut in the common case euclidean_distances(X, X)
@@ -92,9 +79,9 @@ def euclidean_distances(X, Y=None, Y_norm_squared=None, squared=False,X_norm_squ
     if X is Y:
         np.fill_diagonal(distances, 0)
     if squared:
-        return(distances) 
+        return distances
     else:
-        return(distances**0.5)
+        return distances**0.5
 
 
 def row_norms(X, squared=False):
@@ -119,61 +106,6 @@ def row_norms(X, squared=False):
         np.sqrt(norms, norms)
     return norms
 
-
-def check_pairwise_arrays(X, Y, precomputed=False, dtype=None):
-    """ Set X and Y appropriately and checks inputs
-    If Y is None, it is set as a pointer to X (i.e. not a copy).
-    If Y is given, this does not happen.
-    All distance metrics should use this function first to assert that the
-    given parameters are correct and safe to use.
-    Specifically, this function first ensures that both X and Y are arrays,
-    then checks that they are at least two dimensional while ensuring that
-    their elements are floats (or dtype if provided). Finally, the function
-    checks that the size of the second dimension of the two arrays is equal, or
-    the equivalent check for a precomputed distance matrix.
-    Parameters
-    ----------
-    X : {array-like}, shape (n_samples_a, n_features)
-    Y : {array-like}, shape (n_samples_b, n_features)
-    precomputed : bool
-        True if X is to be treated as precomputed distances to the samples in
-        Y.
-    dtype : string, type, list of types or None (default=None)
-        Data type required for X and Y. If None, the dtype will be an
-        appropriate float type selected by _return_float_dtype.
-        .. versionadded:: 0.18
-    Returns
-    -------
-    safe_X : {array-like}, shape (n_samples_a, n_features)
-        An array equal to X, guaranteed to be a numpy array.
-    safe_Y : {array-like}, shape (n_samples_b, n_features)
-        An array equal to Y if Y was not None, guaranteed to be a numpy array.
-        If Y was None, safe_Y will be a pointer to X.
-    """
-    X, Y, dtype_float = _return_float_dtype(X, Y)
-
-    estimator = 'check_pairwise_arrays'
-    if dtype is None:
-        dtype = dtype_float
-
-    if Y is X or Y is None:
-        X = Y = check_array(X, accept_sparse='csr', dtype=dtype,estimator=estimator)
-    else:
-        X = check_array(X, accept_sparse='csr', dtype=dtype,estimator=estimator)
-        Y = check_array(Y, accept_sparse='csr', dtype=dtype,estimator=estimator)
-
-    if precomputed:
-        if X.shape[1] != Y.shape[0]:
-            raise ValueError("Precomputed metric requires shape "
-                             "(n_queries, n_indexed). Got (%d, %d) "
-                             "for %d indexed." %
-                             (X.shape[0], X.shape[1], Y.shape[0]))
-    elif X.shape[1] != Y.shape[1]:
-        raise ValueError("Incompatible dimension for X and Y matrices: "
-                         "X.shape[1] == %d while Y.shape[1] == %d" % (
-                             X.shape[1], Y.shape[1]))
-
-    return X, Y
 
 def stable_cumsum(arr, axis=None, rtol=1e-05, atol=1e-08):
     """Use high precision for cumsum and check that final value matches sum

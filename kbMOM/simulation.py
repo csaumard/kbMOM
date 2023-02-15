@@ -1,5 +1,5 @@
 from crosskbmom import *
-from math import log, floor, ceil, sqrt
+from math import floor
 
 from sklearn.datasets import make_blobs
 from kbmom.utils import *
@@ -25,7 +25,7 @@ class Simulation():
     n_samples = 1200
     nb_outliers = 10
     outlier_degree = 20
-    repetitions = 10
+    repetitions = 15
 
     all_rmse = []
 
@@ -34,7 +34,7 @@ class Simulation():
         print(coef_ech, end='*')
         # Repetitions
         rmse = []
-        for i in range(repetitions):
+        for j in range(repetitions):
             # data simulation
             X, y_true = make_blobs(n_samples=n_samples, centers=MU, cluster_std=0.4)
             for i in range(nb_outliers):
@@ -49,11 +49,16 @@ class Simulation():
 
         all_rmse.append(rmse)
     print('RMSE')
-    for name, x in zip(np.arange(20, 150, 10), all_rmse):
+    for name, x in zip(np.arange(30, 130, 10), all_rmse):
         print('sample size ', name, 'rmse', np.round(np.mean(x), 2))
     #print('centroids')
     #print(kmom_cross.centers.astype(np.int))
 
+    plt.figure(figsize=(15, 8))
+    plt.subplot(121)
+    plt.plot(X[:, 0], X[:,1], '.')
+    plt.title('Example of simulation case')
+    plt.subplot(122)
     plt.violinplot(all_rmse)
     plt.title('Influence of the sample size of the block')
     plt.show()

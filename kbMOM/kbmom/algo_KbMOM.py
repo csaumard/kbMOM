@@ -268,7 +268,7 @@ class KbMOM:
             idx_block = self.sampling_all_blocks_function()
 
             # Compute empirical risk for all blocks and select the empirical-block
-            id_median, median_risk_ = self.median_risk_function(X, idx_block)
+            id_median, median_risk_ = self.median_risk_function(idx_block)
 
             # If blocks are undefined, then restarting strategy
             loop_within = 0

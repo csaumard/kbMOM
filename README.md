@@ -1,4 +1,8 @@
-# kbMOM
+# Robust clustering algorithms
+2 versions of robust (to outliers) clustering algorithm are implemented
+
+### KbMOM
+> A first version of KbMOM is implemented 
 The median-of-means is an estimator of the mean of a random variable
 that has emerged as an efficient and flexible tool to design robust
 learning algorithms with optimal theoretical guarantees. However,
@@ -16,7 +20,8 @@ of convergence for the K-means distortion in the adversarial contamination
 setting. It is the first result of this kind for
 the K-means distortion.
 
-> A first version of KbMOM is implemented.
-
 For further details :
 > BRUNET-SAUMARD, Camille, GENETAY, Edouard, et SAUMARD, Adrien. K-bMOM: A robust Lloyd-type clustering algorithm based on bootstrap median-of-means. Computational Statistics & Data Analysis, 2022, vol. 167, p. 107370.
+
+### cross KbMOM
+The main idea here is to subsample the dataset in blocks and run a clustering algorithm in each block. The fitted centroids kept are those which minimise the median risks computed on all the blocks except the one where the centroids have been fitted. Therefore, the selected risk should (according to the theory) have a risk closed to the risk of the unknown law of the data.

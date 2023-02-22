@@ -34,7 +34,7 @@ class Mom:
 
     def sampling_all_sublocks(self, block_init):
         """
-        # Creates nbr_blocks blocks based on self.coef_ech and self.B with replacement
+        # resample with replacement indices in blocks based on block_init  = block of data indices
         ```prms ```
         # block_init  : list, list of indices
 
@@ -44,7 +44,7 @@ class Mom:
 
     def one_block_mean(self, data, block):
         """
-        Compute the empirical risk on the block b from centroids_b
+        Compute the empirical mean on the block b from centroids_b
         ```prms```
         # data       : dataset
         # block      : list, list of indices for the data to consider

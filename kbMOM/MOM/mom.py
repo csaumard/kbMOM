@@ -3,10 +3,7 @@
 # !/usr/bin/python
 # -*- coding: utf-8 -*-
 # """
-# cross K-bMOM algorithm
-# create a strategy independent from the clustering approach which is robust towards outliers or cluster of outliers
-# The main patterns are found and well estimated by their centroid
-# Note that we speak about outliers (which supposes 'small size' character) and not noisy data
+# Check the theoretical properties of the MOM estimators
 # """
 
 __author__ = "Camille Saumard"
@@ -16,7 +13,6 @@ __maintainer__ = "Camille Saumard"
 __email__ = "camille.brunet@gmail.com"
 __status__ = "version beta"
 
-from itertools import islice
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -36,27 +32,14 @@ class Mom:
         self.repetitions = repetitions
         self.median_block_j = []
 
-    def slicing(self, n):
-        """
-        ```prms```
-        # n     : size of the 1-d dataset
-        """
-        if n % self.B == 0:
-            length_to_split = [n // self.B] * self.B
-        else:
-            length_to_split = [n // self.B] * (self.B - 1)
-            length_to_split.append(n - (self.B - 1) * n // self.B)
-        return length_to_split
-
-    def sampling_all_sublocks(self, block_init):  # ,nbr_blocks,weighted_point,cluster_sizes):
+    def sampling_all_sublocks(self, block_init):
         """
         # Creates nbr_blocks blocks based on self.coef_ech and self.B with replacement
         ```prms ```
         # block_init  : list, list of indices
 
-        ```return``` list, list of randomly selected indeices with replacement from block_init
+        ```return``` list, list of randomly selected indices with replacement from block_init
         """
-        # [choices(np.arange(n), k=size) for size in self.slicing(n)]
         return [choices(size, k=len(size)) for size in block_init]
 
     def one_block_mean(self, data, block):
@@ -65,83 +48,137 @@ class Mom:
         ```prms```
         # data       : dataset
         # block      : list, list of indices for the data to consider
-        # centroid_b : numpy array, matrix of centroids
 
-        ```Return``` float, Average of nearest distances to their closest centroids
+        ```Return``` float, Average of the data block
         """
         return np.mean(data[block])
 
     def get_median_block(self, list_means):
         """
         Get the median risk among a list of risks (float)
+        ```prms```
+        # list_means : list of block means
+
+        ```Return``` float, Median of list_mean values
         """
         Bm1 = self.B - 1
         return list_means[np.argsort(list_means)[Bm1 // 2]]
 
     def median_of_means(self, X):
+        """
+        Compute the median of block means
+        ```prms```
+        # X : 1-d data
+
+        ```Return``` float, Median of block average
+        """
         n = len(X)
-        block_size = int(np.ceil(n/self.B))
-        block_means = [np.mean(X[i:i+block_size]) for i in range(0, n, block_size)]
+        block_size = int(np.ceil(n / self.B))
+        block_means = [np.mean(X[i:i + block_size]) for i in range(0, n, block_size)]
         return np.median(block_means)
 
     def generate_mom(self, nu, data_size):
         """
-        Compute medians of means on a student_t distribution
+        Compute self.repetitions times medians of means on a student_t distribution in order to get its distribution
+        ```prms```
+        # nu : Degree of freedom of the Student
+        # data_size : length of data
+
+        ```Return``` tuple, list of moms, list of data means
         """
         list_means = []
+        list_moms = []
         for i in range(self.repetitions):
             # Generate data
             X = np.random.standard_t(nu, data_size)
-            list_means.append(np.sqrt(data_size)*self.median_of_means(X))
-        return list_means
+            # get median of means of each block
+            list_moms.append(self.median_of_means(X))
+            # get the means of each block
+            list_means.append(np.mean(X))
+        return list_moms, list_means
 
-    def generate(self, data):
+    def generate_bootstrapMOM(self, data):
+        """
+        Generate bootstrap MOM according to the data blocks.
+        ```prms```
+        # data : 1-d dataset
+
+        ```Return``` self.median_block_j list, list of medians of means of each boostrap block
+        """
         n = len(data)
         block_size = int(np.ceil(n / self.B))
+
         # block initialisation
-        init_blocks = [[j for j in range(i, i+block_size)] for i in range(0, n, block_size)]
+        init_blocks = [[j for j in range(i, i + block_size)] for i in range(0, n, block_size)]
         list_means = [self.one_block_mean(data, b) for b in init_blocks]
+
         # bootstrap
         for j in range(self.repetitions):
             blocks = self.sampling_all_sublocks(init_blocks)
-            list_means_bootstrap = [self.one_block_mean(data, block) - block_mean for block, block_mean in zip(blocks, list_means)]
-            self.median_block_j.append(np.sqrt(n) * np.median(list_means_bootstrap)) #self.get_median_block(list_means_bootstrap)
+            list_means_bootstrap = [self.one_block_mean(data, block) - block_mean for block, block_mean
+                                    in zip(blocks, list_means)]
+            self.median_block_j.append(np.median(list_means_bootstrap))
 
 
 class Simulate:
+    # Simulations to check the theoretical results on the distribution of Moms and bootstrap Moms
+    def __init__(self, nu, B, iterations, dsize):
+        """
+        ```prms```
+        # nu : degree of freedom of a student law
+        # B  : nb of blokcs
+        # iterations : repetitions of the experiment
+        # dsize : length of simulated data
+        """
+        self.nu = nu
+        self.B = B
+        self.iterations = iterations
+        self.dsize = dsize
 
-    def __init__(self):
-        pass
+    def main_moms(self):
+        """
+        Generate MOMs and visualiza its distribution
+        ```prms```
+        # nu : degree of freedom of a student law
+        # B  : nb of blokcs
+        # iterations : repetitions of the experiment
+        # dsize : length of simulated data
 
-    def main_moms(self, nu, B, iterations, dsize):
+        ```Return``` self.median_block_j list, list of medians of means of each boostrap block
+        """
+        cls = Mom(self.B, self.iterations)
+        list_mom = cls.generate_mom(self.nu, self.dsize)
 
-        # Compute mom and boostrap mom
-        cls = Mom(B, iterations)
-        list_mom = cls.generate_mom(nu, dsize)
-
-        plt.subplot(121)
-        plt.hist(list_mom, range=(-15, 15), bins=20, density=True)
+        reflaw = np.random.normal(loc=0.0, scale=np.sqrt(math.pi / 2 * self.nu / (self.nu - 2)), size=self.iterations)
+        df = pd.DataFrame({'MOM': [np.sqrt(self.dsize) * x for x in list_mom[0]],
+                           'N-density': reflaw})  # 'mean': [np.sqrt(dsize)*x for x in list_mom[1]],
+        df.plot(kind='density')
         plt.grid()
         plt.title('Distribution des MOMs  ' + str(np.mean(list_mom)))
-
-        # Display the histogram of the real law
-        reflaw = np.random.normal(loc=0.0, scale=np.sqrt(math.pi / 2 * nu / (nu - 2)), size=10000)
-        plt.subplot(122)
-        plt.hist(reflaw, bins=20, range=(-15, 15), alpha=0.5, density=True)
-        plt.title('Vraie loi')
         plt.show()
 
-    def bootstrap_mom(self, nu, B, iterations, dsize):
+    def bootstrap_mom(self):
+        """
+        Generate MOMs and visualize its distribution
+
+        ```Return``` hist
+        """
         # data generation
-        data = np.random.standard_t(nu, dsize)
+        data = np.random.standard_t(self.nu, self.dsize)
 
         # Compute mom and boostrap mom
-        cls = Mom(B, iterations)
-        cls.generate(data)
-        list_mom = cls.generate_mom(nu, dsize)
+        cls = Mom(self.B, self.iterations)
 
-        reflaw = np.random.normal(loc=0.0, scale=np.sqrt(math.pi / 2 * nu / (nu - 2)), size=iterations)
-        df = pd.DataFrame({'MOM': list_mom, 'boostrapMOM': cls.median_block_j, 'Truth': reflaw})
+        # bootstrap mom
+        cls.generate_bootstrapMOM(data)
+
+        # mom
+        list_mom = cls.generate_mom(self.nu, self.dsize)
+
+        reflaw = np.random.normal(loc=0.0, scale=np.sqrt(math.pi / 2 * self.nu / (self.nu - 2)), size=self.iterations)
+        df = pd.DataFrame({'MOM': [np.sqrt(self.dsize) * x for x in list_mom[0]],
+                           'bootstrapMOM': [np.sqrt(self.dsize) * x for x in cls.median_block_j],
+                           'Truth': reflaw})
         df.plot(kind='density')
         plt.grid()
         plt.title('Density plot for MOM and boostrap MOM')
@@ -149,5 +186,5 @@ class Simulate:
 
 
 if __name__ == '__main__':
-    Simulate().main_moms(nu=4, B=11, iterations=1000, dsize=100)
-    Simulate().bootstrap_mom(nu=4, B=10, iterations=1000, dsize=100)
+    Simulate(nu=4, B=5, iterations=1000, dsize=50).main_moms()
+    Simulate(nu=4, B=5, iterations=1000, dsize=50).bootstrap_mom()
